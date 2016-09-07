@@ -3,9 +3,13 @@ from pdfminer.converter import TextConverter
 from pdfminer.layout import LAParams
 from io import StringIO
 from pdfminer.pdfinterp import process_pdf
+import logging
 
 
 def convert(fp):
+    logger = logging.getLogger()
+    logger.propagate = False
+    logging.getLogger().setLevel(logging.ERROR)
     caching = True
     rsrcmgr = PDFResourceManager(caching=caching)
     pagenos=set()
