@@ -2855,7 +2855,7 @@ DNR-2060-08P,,ftp://ftp.dlink.eu/Products/dnr/DNR-2060-08P/driver_software/DNR-2
 DNR-2060-08P,,ftp://ftp.dlink.eu/Products/dnr/DNR-2060-08P/driver_software/DNR-2060-08P_fw_revA_1-00-07_all_en_20130905.zip,39347553,2014-12-09 00:00:00,551276d8314642250a15a95462f61ac330dc7560,50b875d34b7803b12d7c8a8946a15f76
 DNR-2060-08P,,ftp://ftp.dlink.eu/Products/dnr/DNR-2060-08P/driver_software/DNR-2060-08P_fw_revA1_1-10-00_all_en_20140219.zip,42276561,2014-12-09 00:00:00,c4748ce63f14830a4a7056f4ff679dfed39d5247,2cef51fca8f1794c28088219c98e398c
 DNR-2060-08P,,ftp://ftp.dlink.eu/Products/dnr/DNR-2060-08P/driver_software/DNR-2060-08P_fw_revA1_1-00-07_all_en_131203.zip,39347540,2014-12-09 00:00:00,f6f19eebb762f35d0a9adfd111a1d18d7a565820,a737b3487ff15cdc3ebb4ac7352743ad
-DNR-2060-08P,1.00,ftp://ftp.dlink.eu/Products/dnr/DNR-2060-08P/driver_software/DNR-2060-08P_fw_revA_v1.00.07_all_en_20130905.zip,-1,2013-12-04 00:00:00,,
+DNR-2060-08P,1.00,ftp://ftp.dlink.eu/Products/dnr/DNR-2060-08P/driver_software/DNR-2060-08P_fw_revA_1-00-07_all_en_20130905.zip,-1,2013-12-04 00:00:00,,
 DNR-2060-08P,1.10,ftp://ftp.dlink.eu/Products/dnr/DNR-2060-08P/driver_software/DNR-2060-08P_fw_revA1_1-10-00_all_en_140127.zip,42263431,2014-03-27 00:00:00,3a88b408c5b23f1b183d47788447ef5f239ad00c,58492bf62c90bf70fd0d0fc9a1b288be
 DNR-2060-08P,1.10,ftp://ftp.dlink.eu/Products/dnr/DNR-2060-08P/driver_software/DNR-2060-08P_fw_revA1_1-10-02_all_en_20140408.zip,42349716,2014-07-28 00:00:00,91bf1c8b132434602e36672ce19e3d6b06d548c7,134dc918c85eedc1c635e97704963483
 DNR-312l,,ftp://ftp.dlink.eu/Products/dnr/DNR-312l/driver_software/DNR-312L_sw_revA1_Search-Utility-Win_1-1_all_multi_20151015.zip,266602,2015-10-16 00:00:00,ff53fda032486285b1d56f05f81159dd35c92b3a,2bdbb5a3f734c29d783f36963da7fa9f
@@ -3279,8 +3279,8 @@ dns-343,,ftp://ftp.dlink.eu/Products/dns/dns-343/driver_software/DNS-343_snmp_re
 dns-343,,ftp://ftp.dlink.eu/Products/dns/dns-343/archive/driver_software/easy_search(4.5.0.0)_08082008.zip,3727123,2014-12-09 00:00:00,574194875def538a1c01d2aab4596889e2ff4e81,a375868dc639745cb6de1113c9610421
 dns-343,,ftp://ftp.dlink.eu/Products/dns/dns-343/driver_software/DNS-343_fw_revALL_1-05b03_all_en_20120330.zip,11152571,2014-12-09 00:00:00,3f47e3a8842bd44b3c150aec958cf85b4c14fca4,76c34a765cbd4b31fe1a91d1a6702346
 dns-343,1.03,ftp://ftp.dlink.eu/Products/dns/dns-343/driver_software/dns-343_fw_v1-03.zip,14538858,2009-10-10 00:00:00,73f48b5d0a737d8beae66cfefb5273a17e007d0d,05ac6ff0977f23ce2162856bdb8cccbc
-DNS-343,1.03,ftp://ftp.dlink.co.uk/dns_nas/DNS-343/dns-343_fw_v1.03_widget_v1.01.zip,-1,2009-10-10 00:00:00,,
-DNS-343,1.03,ftp://ftp.dlink.co.uk/dns_nas/DNS-343/dns-343_fw_v1.03.zip,-1,2009-10-10 00:00:00,,
+DNS-343,1.03,ftp://ftp.dlink.eu/Products/dns/dns-343/driver_software/dns-343_fw_v1-03_widget_v1-01.zip,-1,2009-10-10 00:00:00,,
+DNS-343,1.03,ftp://ftp.dlink.eu/Products/dns/dns-343/driver_software/dns-343_fw_v1-03.zip,-1,2009-10-10 00:00:00,,
 dns-343,1.03,ftp://ftp.dlink.eu/Products/dns/dns-343/driver_software/dns-343_fw_v1-03_widget_v1-01.zip,9705794,2009-10-10 00:00:00,baca7d77b9301b8888c6b7909c938cb1df9227a8,53e04d085d178d5a63221c2f470890a5
 dns-345,,ftp://ftp.dlink.eu/Products/dns/dns-345/driver_software/DNS-345_sw_revALL_GPL-Code_1-00_all_en_20120313.zip,784208387,2014-12-09 00:00:00,b3a74092b803eaa5de3e66aefbe36e259e65cb9a,33bc822b7b4c4362032b996b7a2647c2
 dns-345,,ftp://ftp.dlink.eu/Products/dns/dns-345/driver_software/DNS-345_sw_revA2_Surveillance_Center_Package_2-03_all_multi_20160106.zip,8702333,2016-01-19 11:02:00,ee0e121633d60520729ad14f2d6a6a3745811ea6,c77921f6ab7e17d1f2a7e377c1b580db
