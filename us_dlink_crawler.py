@@ -21,11 +21,12 @@ def extract_date(txt):
 
 
 def extract_fw_ver(txt):
-    m = re.search(r'\d+\.\d[0-9a-z\.]*', txt, re.I)
+    m = re.search(r'\((.+)\)', txt, re.I)
     if m:
-        return m.group(0)
+        return m.group(1).strip(' \t()')
     else:
         ipdb.set_trace()
+        m = re.search(r'\d+\.\d[0-9a-z\.]*', txt, re.I)
         return None
 
 
