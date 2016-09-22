@@ -8,7 +8,7 @@ from concurrent.futures import ProcessPoolExecutor
 from web_utils import getFileSha1, getFileMd5
 
 
-localstor='output/D-Link/files.dlink.com.au_2/'
+localstor='output/D-Link/files.dlink.com.au/'
 
 
 def download(ftpurl):
