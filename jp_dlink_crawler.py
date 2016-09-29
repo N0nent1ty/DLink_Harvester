@@ -5,18 +5,50 @@ import re
 from datetime import datetime
 import csv
 from urllib import parse
+import os
+from concurrent.futures import ProcessPoolExecutor
+from web_utils import getFileSha1, getFileMd5
+
+
+localstor='output/D-Link/dlink-jp.com/'
+executor=None
 
 
 def csvinit():
     with open('jp_dlink_filelist.csv', 'w') as fout:
         cw = csv.writer(fout)
-        cw.writerow(['model','fw_ver', 'fw_url', 'rel_date'])
+        cw.writerow(['model','fw_ver', 'fw_url', 'rel_date', 'fsize', 'sha1', 'md5'])
 
 
-def csvwrite(model, fw_ver, fw_url, rel_date):
-    with open('jp_dlink_filelist.csv', 'a') as fout:
-        cw = csv.writer(fout)
-        cw.writerow([model,fw_ver, fw_url, rel_date])
+def download(model, fw_ver, fw_url, rel_date):
+    from urllib import request
+    try:
+        fname = os.path.basename(parse.urlsplit(fw_url).path)
+
+        def epilog():
+            sha1 = getFileSha1(localstor+fname)
+            md5 = getFileMd5(localstor+fname)
+            with open('jp_dlink_filelist.csv', 'a') as fout:
+                cw = csv.writer(fout)
+                cw.writerow([model,fw_ver, fw_url, rel_date, fsize, sha1, md5])
+
+        with request.urlopen(fw_url, timeout=60) as fin:
+            fsize = fin.headers['Content-Length']
+            if os.path.exists(localstor+fname) and \
+                    os.path.isfile(localstor+fname) and \
+                    os.path.getsize(localstor+fname)==fsize:
+                print('%(fname)s already exists'%locals())
+                epilog()
+                return
+            print('start download :', fw_url)
+            cont = fin.read()
+            with open(localstor+fname, 'wb') as fout:
+                fout.write(cont)
+            print('finished download :', fw_url)
+        epilog()
+        return
+    except Exception as ex:
+        print(ex)
 
 
 def parse_prod(page_url):
@@ -42,14 +74,15 @@ def parse_prod(page_url):
                     except (AttributeError,ValueError):
                         rel_date=None
 
-                    csvwrite(model, fw_ver, fw_url, rel_date)
-                    print('%s %s %s %s'%(model, fw_ver, fw_url, rel_date))
+                    print('%s %s %s'%(model, fw_ver, rel_date))
+                    global executor
+                    executor.submit(download, model, fw_ver, fw_url, rel_date)
 
 
 def crawl_serie(serie_url):
     d=pq(url=serie_url)
     prods = d('.productList td h3 a')
-    for prod in enumerate(prods):
+    for prod in prods:
         model = prod.text_content().strip()
         print('model="%(model)s"'%locals())
         parse_prod(prod.attrib['href'])
@@ -70,14 +103,17 @@ def crawl_cat(caturl):
 
 def main():
     csvinit()
+    global executor
+    executor = ProcessPoolExecutor()
+    os.makedirs(localstor, exist_ok=True)
 
-    # d=pq(url=root_url)
-    # cats = d("#gnav_01 .child p>a")
-    # for cat in cats:
-    #     path = cat.attrib['href']
-    #     print("cat=%(path)s"%locals())
-    #     caturl = parse.urljoin(root_url,path)
-    #     crawl_cat(caturl)
+    d=pq(url=root_url)
+    cats = d("#gnav_01 .child p>a")
+    for cat in cats:
+        path = cat.attrib['href']
+        print("cat=%(path)s"%locals())
+        caturl = parse.urljoin(root_url,path)
+        crawl_cat(caturl)
 
     d=pq(url="http://www.dlink-jp.com/pog")
     prods = d(".pog_eos a")
@@ -92,6 +128,8 @@ def main():
         model=prod.text_content().strip()
         print('model="%(model)s"'%locals())
         parse_prod(prod.attrib['href'])
+    print('wait for Executor shutdown')
+    executor.shutdown(True)
 
 
 if __name__=='__main__':
