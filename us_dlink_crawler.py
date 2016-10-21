@@ -1,14 +1,15 @@
+#!/usr/bin/env python3
 # -*- coding:utf8 -*-
 import re
 import os
-from urllib import parse
-from concurrent.futures import ThreadPoolExecutor
 import csv
 import time
 from datetime import datetime
-import requests
-import ipdb
+from urllib import parse
+from concurrent.futures import ThreadPoolExecutor
 from pyquery import PyQuery as pq
+import requests
+
 
 executor=None
 localstor='output/D-Link/ftp2.dlink.com/'
@@ -68,8 +69,6 @@ def extract_fw_ver(txt):
     if m:
         return m.group(1).strip(' \t()')
     else:
-        ipdb.set_trace()
-        m = re.search(r'\d+\.\d[0-9a-z\.]*', txt, re.I)
         return None
 
 

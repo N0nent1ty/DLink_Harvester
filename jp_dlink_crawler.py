@@ -1,27 +1,21 @@
 #!/usr/bin/env python3
 # coding: utf-8
-from pyquery import PyQuery as pq
-import re
-from datetime import datetime
 import csv
-from urllib import parse
+import re
 import os
-from concurrent.futures import ProcessPoolExecutor
-from web_utils import getFileSha1, getFileMd5
+from datetime import datetime
+from urllib import parse
+from concurrent import futures
+from pyquery import PyQuery as pq
 
 
 localstor='output/D-Link/dlink-jp.com/'
 executor=None
 
 
-def csvinit():
-    with open('jp_dlink_filelist.csv', 'w') as fout:
-        cw = csv.writer(fout)
-        cw.writerow(['model','fw_ver', 'fw_url', 'rel_date', 'fsize', 'sha1', 'md5'])
-
-
-def download(model, fw_ver, fw_url, rel_date):
+def download(model, rev, fw_ver, fw_url, rel_date):
     from urllib import request
+    from web_utils import getFileSha1, getFileMd5
     try:
         fname = os.path.basename(parse.urlsplit(fw_url).path)
 
@@ -30,7 +24,7 @@ def download(model, fw_ver, fw_url, rel_date):
             md5 = getFileMd5(localstor+fname)
             with open('jp_dlink_filelist.csv', 'a') as fout:
                 cw = csv.writer(fout)
-                cw.writerow([model,fw_ver, fw_url, rel_date, fsize, sha1, md5])
+                cw.writerow([model,rev, fw_ver, fw_url, rel_date, fsize, sha1, md5])
 
         with request.urlopen(fw_url, timeout=60) as fin:
             fsize = fin.headers['Content-Length']
@@ -76,7 +70,7 @@ def parse_prod(page_url):
 
                     print('%s %s %s'%(model, fw_ver, rel_date))
                     global executor
-                    executor.submit(download, model, fw_ver, fw_url, rel_date)
+                    executor.submit(download, model, None, fw_ver, fw_url, rel_date)
 
 
 def crawl_serie(serie_url):
@@ -102,9 +96,11 @@ def crawl_cat(caturl):
 
 
 def main():
-    csvinit()
+    with open('jp_dlink_filelist.csv', 'w') as fout:
+        cw = csv.writer(fout)
+        cw.writerow(['model', 'rev', 'fw_ver', 'fw_url', 'rel_date', 'fsize', 'sha1', 'md5'])
     global executor
-    executor = ProcessPoolExecutor()
+    executor = futures.ThreadPoolExecutor()
     os.makedirs(localstor, exist_ok=True)
 
     d=pq(url=root_url)

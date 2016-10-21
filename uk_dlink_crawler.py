@@ -10,7 +10,7 @@ from pyquery import PyQuery as pq
 
 
 executor=None
-localstor='output/D-Link/ftp.dlink.eu_2/'
+localstor='output/D-Link/ftp.dlink.eu/'
 
 
 def download(model, rev, fw_ver, fw_url, fdate):
@@ -86,8 +86,7 @@ def parse_page(page_url, model):
                 global executor
                 executor.submit(download, model, None, fw_ver,fw_url,fdate)
     except urllib.error.HTTPError as ex:
-        print(ex)
-        pass
+        print(ex, ' url=', page_url)
     except Exception as ex:
         print(ex)
         import pdb
@@ -109,6 +108,7 @@ def main():
     for item in d('.support_popular_products > ul > li > a'):
         model = item.text_content().strip()
         parse_page(item.attrib['href'], model)
+    print('wait for Executor shutdown')
     executor.shutdown(True)
 
 

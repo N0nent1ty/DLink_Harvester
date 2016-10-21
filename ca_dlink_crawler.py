@@ -1,14 +1,50 @@
+#!/usr/bin/env python3
 # -*- coding:utf8 -*-
+import re
+import csv
+import os
+import time
+from datetime import datetime
 from urllib import parse
+from concurrent import futures
 from pyquery import PyQuery as pq
 import requests
-import time
-# import json
-from datetime import datetime
-import re
-import ipdb
-# import traceback
-import csv
+
+
+localstor='output/D-Link/ftp.dlink.ca/'
+executor=None
+
+
+def download(model, rev, fw_ver, fw_url, rel_date):
+    from urllib import request
+    from web_utils import getFileSha1, getFileMd5
+    try:
+        fname = os.path.basename(parse.urlsplit(fw_url).path)
+
+        def epilog():
+            sha1 = getFileSha1(localstor+fname)
+            md5 = getFileMd5(localstor+fname)
+            with open('ca_dlink_filelist.csv', 'a') as fout:
+                cw = csv.writer(fout)
+                cw.writerow([model,rev,fw_ver, fw_url, rel_date,fsize, sha1, md5])
+            return
+        with request.urlopen(fw_url, timeout=60) as fin:
+            fsize = fin.headers['Content-Length']
+            if os.path.exists(localstor+fname) and \
+                    os.path.isfile(localstor+fname) and \
+                    os.path.getsize(localstor+fname)==fsize:
+                print('%(fname)s already exists'%locals())
+                epilog()
+                return
+            print('start download :', fw_url)
+            cont = fin.read()
+            with open(localstor+fname, 'wb') as fout:
+                fout.write(cont)
+            print('finished download :', fw_url)
+        epilog()
+        return
+    except Exception as ex:
+        print(ex)
 
 
 def extract_date(txt):
@@ -26,21 +62,7 @@ def extract_fw_ver(txt):
         m2 = re.search(r'[0-9a-z\.]+', m.group(1), re.I)
         return m2.group(0)
     else:
-        ipdb.set_trace()
-        m = re.search(r'\d+\.\d[0-9a-z\.]*', txt, re.I)
         return None
-
-
-def csvinit():
-    with open('ca_dlink_filelist.csv', 'w') as fout:
-        cw = csv.writer(fout)
-        cw.writerow(['model', 'rev', 'fw_ver', 'fw_url', 'date'])
-
-
-def csvwrite(row):
-    with open('ca_dlink_filelist.csv', 'a') as fout:
-        cw = csv.writer(fout)
-        cw.writerow(row)
 
 
 def crawl_prod(prod_url, model):
@@ -60,19 +82,26 @@ def crawl_prod(prod_url, model):
                     fw_ver = extract_fw_ver(fil['name'])
                     date = extract_date(fil['date'])
                     print('%s %s %s %s %s'%(model, revname, fw_ver, fil['url'], date))
-                    csvwrite([model,revname, fw_ver, fil['url'], date])
+                    global executor
+                    executor.submit(download, revname, model, fw_ver, fil['url'], date)
 
 
 def main():
-    start_url='http://support.dlink.ca/AllPro.aspx?type=all'
-    d = pq(url=start_url)
+    with open('ca_dlink_filelist.csv', 'w') as fout:
+        cw = csv.writer(fout)
+        cw.writerow(['model', 'rev', 'fw_ver', 'fw_url', 'date', 'fsize', 'sha1', 'md5'])
+    global executor
+    executor = futures.ThreadPoolExecutor()
+
+    d = pq(url='http://support.dlink.ca/AllPro.aspx?type=all')
     # all 442 models
     models = [_.text_content().strip() for _ in d('tr > td:nth-child(1) > .aRedirect')]
-    csvinit()
 
     for model in models:
         prod_url = 'http://support.dlink.ca/ProductInfo.aspx?m=%s'%parse.quote(model)
         crawl_prod(prod_url, model)
+    print('wait for Executor shutdown')
+    executor.shutdown(True)
 
 
 if __name__=='__main__':
