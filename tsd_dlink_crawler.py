@@ -28,7 +28,8 @@ def parse_models():
             suffixs = re.findall(r"sl\.options\[i\]\.text='(.+?)'", line)
             suffixs = [_ for _ in suffixs if not _.lower().startswith('select')]
             models += [(prefix, sfx) for sfx in suffixs]
-            return models
+
+    return models
 
 
 def parse_fw_ver(txt):
@@ -49,6 +50,10 @@ def parse_date(txt):
     except BaseException as ex:
         traceback.print_exc()
         print(ex)
+
+
+firmware_extnames = ['.bin', '.zip', '.had', '.rar', '.rmt', '.swap', '.img',
+                     '.bix', '.hex', '.stk', '.bz2', '.tar', '.opr', '', '.exe']
 
 
 def selectModel(pfx, sfx):
@@ -87,9 +92,10 @@ def selectModel(pfx, sfx):
                 fdate = parse_date(details[3])
                 filenames = tree.xpath(".//*[@class='fn9']/text()")
                 file_hrefs = tree.xpath(".//*[@class='fn9']/@href")
+                print('filenames=', filenames)
                 for jfil, filename in enumerate(filenames):
-                    print('filename=', filename)
-                    if splitext(filename)[-1].lower() in ['.bin', '.zip', '.had', '.rar', '.rmt']:
+                    print('filename[%d]=%s'%(jfil, filename))
+                    if splitext(filename)[-1].lower() not in ['.doc', '.pdf', '.txt', '.xls', '.docx']:
                         sno = re.search(r"dnn\('(.+?)'\)", file_hrefs[jfil]).group(1)
                         print('sno=', sno)
                         try:
