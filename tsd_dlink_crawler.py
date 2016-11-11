@@ -122,12 +122,13 @@ def selectModel(pfx, sfx):
                             traceback.print_exc()
                             print('timeoute error')
                             continue
+                        fsize = len(doccont.content)
                         sha1 = hashlib.sha1(doccont.content).hexdigest()
                         md5 = hashlib.md5(doccont.content).hexdigest()
                         with open('tsd_dlink_filelist.csv', 'a') as fout:
                             cw = csv.writer(fout)
                             model='%s-%s'%(pfx, sfx)
-                            cw.writerow([model, '', fw_ver, fw_url, fdate, sha1, md5])
+                            cw.writerow([model, '', fw_ver, fw_url, fdate, fsize, sha1, md5])
     except BaseException as ex:
         traceback.print_exc()
 
