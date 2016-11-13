@@ -25,9 +25,9 @@ def parse_models():
         m = re.search(r"\(k\s*==\s*'(.+?)'\)", line)
         if m:
             prefix = m.group(1)
-            suffixs = re.findall(r"sl\.options\[i\]\.text='(.+?)'", line)
-            suffixs = [_ for _ in suffixs if not _.lower().startswith('select')]
-            models += [(prefix, sfx) for sfx in suffixs]
+        suffixs = re.findall(r"sl\.options\[i\]\.text='(.+?)'", line)
+        suffixs = [_ for _ in suffixs if not _.lower().startswith('select')]
+        models += [(prefix, sfx) for sfx in suffixs]
 
     return models
 
