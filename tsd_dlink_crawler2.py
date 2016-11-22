@@ -59,7 +59,7 @@ def download(session, url, model, filename, fw_ver, fdate):
         doccont = session.get(
             url=url,
             headers={'Referer':'http://tsd.dlink.com.tw/downloads2008detailgo.asp',
-                     'Upgrade-Insecure-Requests':'1'}, stream=True)
+                     'Upgrade-Insecure-Requests':'1'}, stream=True, timeout=30)
         fw_url = doccont.url
         print('fw_url=', fw_url)
         docParams = parse.parse_qs(parse.urlsplit(doccont.url).query)
@@ -73,30 +73,33 @@ def download(session, url, model, filename, fw_ver, fdate):
             print('fsize=', fsize)
         if 'Content-Length' in doccont.headers:
             fsize = int(doccont.headers['Content-Length'])
+            print('fsize=Content-Length=', fsize)
         if 'Content-Disposition' in doccont.headers:
-            print('Content-Disposition=', doccont.headers['Content-Disposition'])
+            # print('Content-Disposition=', doccont.headers['Content-Disposition'])
             fname = doccont.headers['Content-Disposition'].split(';', 1)[1].split('=', 1)[1]
         if 'fsize' in locals():
             if os.path.isfile(localstor+fname) and os.path.getsize(localstor+fname)==fsize:
                 print('"%s" already exists'%(localstor+fname))
                 return
+        print('Start Downloading "%s" to "%s"' % (doccont.url, localstor+fname))
         with open(localstor + fname, 'wb') as fout:
             for chunk in doccont.iter_content(4096):
                 fout.write(chunk)
         fsize = os.path.getsize(localstor + fname)
+        print('Finisehd Downloading "%s" to "%s", fsize=%d' % (doccont.url, localstor+fname, fsize))
         sha1 = getFileSha1(localstor + fname)
         md5 = getFileMd5(localstor + fname)
         with open('tsd_dlink_filelist.csv', 'a') as fout:
             cw = csv.writer(fout)
             cw.writerow([model, '', fw_ver, fw_url, fdate, fsize, sha1, md5])
     except socket.timeout:
-        print('timeout error')
+        print('socket timeout error, url=', url)
         return
     except requests.exceptions.Timeout as ex:
-        traceback.print_exc()
-        print('timeoute error')
+        print('requests timeoute error, url=', url)
         return
     except BaseException as ex:
+        print('unknown error, url=',url)
         traceback.print_exc()
         print(ex)
         return
@@ -115,7 +118,7 @@ def selectModel(pfx, sfx):
             headers={'Referer':"http://tsd.dlink.com.tw/",
                      'Upgrade-Insecure-Requests':"1"}, timeout=30)
         tree = html.fromstring(docs.text)
-        print('%s'% tree.xpath(".//tr[@id='rsq']/td/text()"))
+        # print('%s'% tree.xpath(".//tr[@id='rsq']/td/text()"))
         # doctypes = tree.xpath(".//tr[@id='rsq']/td[1]/text()")
         docnames = tree.xpath(".//tr[@id='rsq']/td[2]/text()")
         doc_dwns = tree.xpath(".//tr[@id='rsq']/@onclick")
@@ -141,7 +144,7 @@ def selectModel(pfx, sfx):
                 file_hrefs = tree.xpath(".//*[@class='fn9']/@href")
                 print('filenames=', filenames)
                 for jfil, filename in enumerate(filenames):
-                    print('filename[%d]=%s'%(jfil, filename))
+                    # print('filename[%d]=%s'%(jfil, filename))
                     if splitext(filename)[-1].lower() not in ['.doc', '.pdf', '.txt', '.xls', '.docx']:
                         sno = re.search(r"dnn\('(.+?)'\)", file_hrefs[jfil]).group(1)
                         global executor
@@ -149,7 +152,10 @@ def selectModel(pfx, sfx):
                                         'http://tsd.dlink.com.tw/asp/get_file.asp?sno=%s'%sno,
                                         model, filename, fw_ver, fdate)
     except BaseException as ex:
+        print('unknown error, model=',model)
         traceback.print_exc()
+        print(ex)
+        print('session=%r'%session)
 
 
 def main():
@@ -158,10 +164,10 @@ def main():
         cw = csv.writer(fout)
         cw.writerow(['model', 'rev', 'fw_ver', 'fw_url', 'date', 'fsize', 'sha1', 'md5'])
     global executor
-    executor = futures.ThreadPoolExecutor()
+    executor = futures.ThreadPoolExecutor(None)
 
     models = parse_models()
-    startI = next(i for i,sp in enumerate(models) if sp[0]=='DIR' and sp[1]=='845L')
+    startI = 0  # next(i for i,sp in enumerate(models) if sp[0]=='DIR' and sp[1]=='845L')
     for model in models[startI:]:
         pfx,sfx = model[0], model[1]
         selectModel(pfx, sfx)
