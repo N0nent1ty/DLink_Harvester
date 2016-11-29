@@ -61,25 +61,24 @@ def download(session, url, model, filename, fw_ver, fdate):
             headers={'Referer':'http://tsd.dlink.com.tw/downloads2008detailgo.asp',
                      'Upgrade-Insecure-Requests':'1'}, stream=True, timeout=30)
         fw_url = doccont.url
-        print('fw_url=', fw_url)
+        # print('fw_url=', fw_url)
         docParams = parse.parse_qs(parse.urlsplit(doccont.url).query)
-        print('docParams=', docParams)
+        # print('docParams=', docParams)
         if 'fileName' in docParams:
             fname = docParams['fileName'][0]
         else:
             fname = os.path.basename(parse.urlsplit(fw_url).path)
         if 'fileSize' in docParams:
             fsize = int(float(docParams['fileSize'][0]))
-            print('fsize=', fsize)
+            # print('fsize=', fsize)
         if 'Content-Length' in doccont.headers:
             fsize = int(doccont.headers['Content-Length'])
-            print('fsize=Content-Length=', fsize)
+            # print('fsize=Content-Length=', fsize)
         if 'Content-Disposition' in doccont.headers:
-            # print('Content-Disposition=', doccont.headers['Content-Disposition'])
             fname = doccont.headers['Content-Disposition'].split(';', 1)[1].split('=', 1)[1]
         if 'fsize' in locals():
             if os.path.isfile(localstor+fname) and os.path.getsize(localstor+fname)==fsize:
-                print('"%s" already exists'%(localstor+fname))
+                # print('"%s" already exists'%(localstor+fname))
                 return
         print('Start Downloading "%s" to "%s"' % (doccont.url, localstor+fname))
         with open(localstor + fname, 'wb') as fout:
@@ -118,8 +117,6 @@ def selectModel(pfx, sfx):
             headers={'Referer':"http://tsd.dlink.com.tw/",
                      'Upgrade-Insecure-Requests':"1"}, timeout=30)
         tree = html.fromstring(docs.text)
-        # print('%s'% tree.xpath(".//tr[@id='rsq']/td/text()"))
-        # doctypes = tree.xpath(".//tr[@id='rsq']/td[1]/text()")
         docnames = tree.xpath(".//tr[@id='rsq']/td[2]/text()")
         doc_dwns = tree.xpath(".//tr[@id='rsq']/@onclick")
         for irow, docname in enumerate(docnames):
@@ -137,12 +134,12 @@ def selectModel(pfx, sfx):
                              "Upgrade-Insecure-Requests":"1"}, timeout=30)
                 tree = html.fromstring(details.text)
                 details = tree.xpath('.//td[@class="MdDclist12"]/text()')
-                print('details = %r'%details)
+                # print('details = %r'%details)
                 fw_ver = parse_fw_ver(details[1])
                 fdate = parse_date(details[3])
                 filenames = tree.xpath(".//*[@class='fn9']/text()")
                 file_hrefs = tree.xpath(".//*[@class='fn9']/@href")
-                print('filenames=', filenames)
+                # print('filenames=', filenames)
                 for jfil, filename in enumerate(filenames):
                     # print('filename[%d]=%s'%(jfil, filename))
                     if splitext(filename)[-1].lower() not in ['.doc', '.pdf', '.txt', '.xls', '.docx']:
@@ -151,6 +148,12 @@ def selectModel(pfx, sfx):
                         executor.submit(download, session,
                                         'http://tsd.dlink.com.tw/asp/get_file.asp?sno=%s'%sno,
                                         model, filename, fw_ver, fdate)
+    except socket.timeout:
+        print('socket timeout error, session=', session)
+        return
+    except requests.exceptions.Timeout as ex:
+        print('requests timeoute error, session=', session)
+        return
     except BaseException as ex:
         print('unknown error, model=',model)
         traceback.print_exc()
