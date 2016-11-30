@@ -4,4 +4,4 @@
 # W391 blank line at end of file
 # E228 missing whitespace around modulo operator
 # W293 blank line contains whitespace
-ignore = E302,E225,E231,E501,E226,W391,E228,W293
+# ignore = E302,E225,E231,E501,E226,W391,E228,W293
