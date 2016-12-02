@@ -103,23 +103,23 @@ class Waiter:
             txts += [txt.strip()]
         return txts
 
-    def waitTextChanged(self, css:str,oldText:str) -> str:
-        sign = 1
-        for x in range(30):
-            e = self.elem(css)
-            try:
-                newText = e.text
-                if newText != oldText:
-                    return newText
-            except StaleElementReferenceException:
-                pass
-            self._driver.execute_script('window.scrollBy(0,%d);'%(5*sign))
-            print('window.scrollBy(0,%d); sleep(2);'%(5*sign))
-            sign = -sign
-            sleep(2)
-        raise TimeoutException('[waitTextChanged] oldText="%s", '
-                               'newText="%s"'%(oldText,newText))
-
+#     def waitTextChanged(self, css:str,oldText:str) -> str:
+#         sign = 1
+#         for x in range(30):
+#             e = self.elem(css)
+#             try:
+#                 newText = e.text
+#                 if newText != oldText:
+#                     return newText
+#             except StaleElementReferenceException:
+#                 pass
+#             self._driver.execute_script('window.scrollBy(0,%d);'%(5*sign))
+#             print('window.scrollBy(0,%d); sleep(2);'%(5*sign))
+#             sign = -sign
+#             sleep(2)
+#         raise TimeoutException('[waitTextChanged] oldText="%s", '
+#                                'newText="%s"'%(oldText,newText))
+#
 
 # -------
 
