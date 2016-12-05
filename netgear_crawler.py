@@ -22,7 +22,7 @@ import traceback
 from concurrent.futures import ThreadPoolExecutor
 from selenium import webdriver
 from web_utils import uprint, getFileSha1, getFileMd5
-import pdb
+# import pdb
 
 
 dlDir= './output/netgear/downloadcenter.netgear.com/'
@@ -56,25 +56,24 @@ def download_file(model, fileName, fw_url):
             fw_date = parse_date(fw_date)
         else:
             fw_date = None
-        # if os.path.isfile(dlDir+fileName) \
-        #         and fileSize==os.path.getsize(dlDir+fileName):
-        #     print('already downloaded: ', fileName)
-        # else:
-        #     print('start downloading: ', fw_url)
-        #     with open(dlDir+fileName+'.downloading', 'wb') as fout:
-        #         for chunk in resp.iter_content(8192):
-        #             fout.write(chunk)
-        #     os.rename(dlDir+fileName+'.downloading', dlDir+fileName)
-        #     print('finished downloading: ', fw_url)
-        # sha1 = getFileSha1(dlDir+fileName)
-        # md5 = getFileMd5(dlDir+fileName)
-        # fileSize = os.path.getsize(dlDir+fileName)
-        # with open('netgear_filelist.csv', 'a') as fout:
-        #     cw = csv.writer(fout)
-        #     cw.writerow([model, fw_ver, fileName, fw_url, fw_date, fileSize, sha1, md5])
+        if os.path.isfile(dlDir+fileName) \
+                and fileSize==os.path.getsize(dlDir+fileName):
+            print('already downloaded: ', fileName)
+        else:
+            print('start downloading: ', fw_url)
+            with open(dlDir+fileName+'.downloading', 'wb') as fout:
+                for chunk in resp.iter_content(8192):
+                    fout.write(chunk)
+            os.rename(dlDir+fileName+'.downloading', dlDir+fileName)
+            print('finished downloading: ', fw_url)
+        sha1 = getFileSha1(dlDir+fileName)
+        md5 = getFileMd5(dlDir+fileName)
+        fileSize = os.path.getsize(dlDir+fileName)
+        with open('netgear_filelist.csv', 'a') as fout:
+            cw = csv.writer(fout)
+            cw.writerow([model, fw_ver, fileName, fw_url, fw_date, fileSize, sha1, md5])
     except BaseException as ex:
         traceback.print_exc()
-        pdb.set_trace()
 
 
 def waitTextChanged(css:str,oldText:str, timeOut=60.0, pollFreq=0.5) -> str:
@@ -173,13 +172,12 @@ def main1(catIdx, famIdx, prdIdx, executor):
                         if not fw_url.startswith('http'):
                             print('Error: fw_url=', fw_url)
                             continue
-                        # executor.submit(download_file, prdTxt, desc, fw_url)
-                        download_file(prdTxt, desc, fw_url)
+                        executor.submit(download_file, prdTxt, desc, fw_url)
+                        # download_file(prdTxt, desc, fw_url)
         catIdx, famIdx, prdIdx = None, None, None
         return catIdx, famIdx, prdIdx
     except BaseException as ex:
         traceback.print_exc()
-        pdb.set_trace()
         dumpSnapshot('netgear_crawler.py.png')
     finally:
         driver.quit()
@@ -188,7 +186,7 @@ def main1(catIdx, famIdx, prdIdx, executor):
 
 def main():
     try:
-        executor = ThreadPoolExecutor(1)
+        executor = ThreadPoolExecutor()
         os.makedirs(dlDir, exist_ok=True)
         with open('netgear_filelist.csv', 'w') as fout:
             cw = csv.writer(fout)
@@ -206,7 +204,6 @@ def main():
                   (catIdx, famIdx, prdIdx))
     except BaseException as ex:
         traceback.print_exc()
-        pdb.set_trace()
     finally:
         executor.shutdown(True)
 
