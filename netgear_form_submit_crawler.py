@@ -4,24 +4,24 @@ import traceback
 from lxml import html
 
 
-iCategory=6-1
-iFamily=16-1
-iProduct=40-1
-iFirmware=7-1
+startCat=0
+startFam=0
+startProd=0
+startFirmware=0
 def main():
     try:
         session = requests.Session()
-        response = session.get(url='http://downloadcenter.netgear.com')
+        url='http://downloadcenter.netgear.com'
+        response = session.get(url=url)
         root = html.fromstring(response.text)
         href = root.xpath(".//a[@id='ctl00_ctl00_ctl00_mainContent_localizedContent_bodyCenter_BasicSearchPanel_btnAdvancedSearch']/@href")
         href = strip_js(href[0])
         formdata = {"__EVENTTARGET": href}
-        response = form_submit(session, response,
-                               "aspnetForm",
-                               formdata,
-                               {"Referer": response.url}
-                               )
-        walkCategories(session, response)
+        resp2 = form_submit(session, root, url,
+                            "aspnetForm",
+                            formdata,
+                            {"Referer": url})
+        walkCategories(session, resp2)
     except BaseException as ex:
         traceback.print_exc()
 
@@ -33,63 +33,81 @@ def strip_js(url):
 def walkCategories(session, response):
     try:
         root = html.fromstring(response.text)
+        url = response.url
         categories = root.xpath(".//select[@name='ctl00$ctl00$ctl00$mainContent$localizedContent$bodyCenter$adsPanel$lbProductCategory']/option")
-        for iCat, category in enumerate(categories):
+        global startCat
+        for iCat, category in enumerate(categories[startCat:], startCat):
+            startCat=0
             rsrc = category.xpath("./@value")[0]
             text = category.xpath(".//text()")[0]
-            # print('Category="%s", iCat=%d'%(text, iCat))
+            print('Category="%s", iCat=%d'%(text, iCat))
             formdata= {"__EVENTTARGET": "ctl00$ctl00$ctl00$mainContent$localizedContent$bodyCenter$adsPanel$lbProductCategory",
                        "ctl00$ctl00$ctl00$mainContent$localizedContent$bodyCenter$adsPanel$lbProductCategory": rsrc,
                        "__ASYNCPOST:": "true"}
-            response = form_submit(session, response,
-                                   "aspnetForm",
-                                   formdata,
-                                   {"Referer": response.url}
-                                   )
-            walkFamilies(session, response)
+            resp2 = form_submit(session, root, url,
+                                "aspnetForm",
+                                formdata,
+                                {"Referer": url})
+            if not resp2:
+                continue
+            walkFamilies(session, resp2)
     except BaseException as ex:
+        print('iCat=%d, cat="%s"'%(iCat, text))
         traceback.print_exc()
 
 
 def walkFamilies(session, response):
     try:
         root = html.fromstring(response.text)
+        url = response.url
         families = root.xpath("//select[@name='ctl00$ctl00$ctl00$mainContent$localizedContent$bodyCenter$adsPanel$lbProductFamily']/option")
-        for iFam, family in enumerate(families):
+        global startFam
+        for iFam, family in enumerate(families[startFam:], startFam):
+            startFam=0
             rsrc = family.xpath("./@value")[0]
             text = family.xpath(".//text()")[0]
-            # print('Family="%s", iFam=%d'%(text, iFam))
+            print('Family="%s", iFam=%d'%(text, iFam))
             formdata={"__EVENTTARGET": "ctl00$ctl00$ctl00$mainContent$localizedContent$bodyCenter$adsPanel$lbProductFamily",
                       "ctl00$ctl00$ctl00$mainContent$localizedContent$bodyCenter$adsPanel$lbProductFamily": rsrc,
                       "__ASYNCPOST:": "true"}
-            response = form_submit(session, response,
-                                   "aspnetForm",
-                                   formdata,
-                                   {"Referer": response.url}
-                                   )
-            walkProducts(response, session)
+            resp2 = form_submit(session, root, url,
+                                "aspnetForm",
+                                formdata,
+                                {"Referer": url})
+            if not resp2:
+                print('Ignored iFam=%d, family="%s"'%(iFam, text))
+                import pdb; pdb.set_trace()
+                continue
+            walkProducts(session, resp2)
     except BaseException as ex:
+        print('iFam=%d, family="%s"'%(iFam, text))
         traceback.print_exc()
 
 
-def walkProducts(response, session):
+def walkProducts(session, response):
     try:
         root = html.fromstring(response.text)
         products = root.xpath("//select[@name='ctl00$ctl00$ctl00$mainContent$localizedContent$bodyCenter$adsPanel$lbProduct']/option")
-        for iProd, product in enumerate(products):
+        url = response.url
+        global startProd
+        for iProd, product in enumerate(products[startProd:], startProd):
+            startProd=0
             rsrc = product.xpath("./@value")[0]
             text = product.xpath(".//text()")[0]
-            # print('Product="%s", iProd=%d'%(text, iProd))
+            print('Product="%s", iProd=%d'%(text, iProd))
             formdata={"__EVENTTARGET": "ctl00$ctl00$ctl00$mainContent$localizedContent$bodyCenter$adsPanel$lbProduct",
                       "ctl00$ctl00$ctl00$mainContent$localizedContent$bodyCenter$adsPanel$lbProduct": rsrc,
                       "__ASYNCPOST:": "true"}
-            response = form_submit(session, response,
-                                   "aspnetForm",
-                                   formdata,
-                                   {"Referer": response.url}
-                                   )
-            walkFirmwares(response, product)
+            resp2 = form_submit(session, root, url,
+                                "aspnetForm",
+                                formdata,
+                                {"Referer": url})
+            if not resp2:
+                print('Ignored iProd=%d, product="%s"'%(iProd, text))
+                continue
+            walkFirmwares(resp2, product)
     except BaseException as ex:
+        print('Error iProd=%d, product="%s"'%(iProd, text))
         traceback.print_exc()
 
 

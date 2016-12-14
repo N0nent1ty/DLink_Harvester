@@ -42,10 +42,12 @@ def _get_inputs(form, formdata):
     return values
 
 
-def form_submit(session, response, formname, formdata, headers):
-    root = html.fromstring(response.text)
-    form = root.xpath('//form[@name="%s"]' % formname)[0]
-    url = urljoin(response.url, form.action)
+def form_submit(session, root, url, formname, formdata, headers):
+    try:
+        form = root.xpath('//form[@name="%s"]' % formname)[0]
+    except IndexError:
+        return None
+    url = urljoin(url, form.action)
     formdata = _get_inputs(form, formdata)
     formdata = dict(formdata)
     return session.post(url=url, headers=headers, data=formdata)
