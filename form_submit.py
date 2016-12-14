@@ -1,6 +1,5 @@
-import requests
 from lxml import html
-from lxml import etree
+# from lxml import etree
 from urllib.parse import urljoin
 
 
@@ -50,85 +49,4 @@ def form_submit(session, response, formname, formdata, headers):
     formdata = _get_inputs(form, formdata)
     formdata = dict(formdata)
     return session.post(url=url, headers=headers, data=formdata)
-
-def strip_js(url):
-    return url.split('\'')[1]
-
-iCategory=6-1
-iFamily=16-1
-iProduct=40-1
-iFirmware=7-1
-def main():
-    session = requests.Session()
-    response = session.get(url='http://downloadcenter.netgear.com')
-    root = html.fromstring(response.text)
-    href = root.xpath(".//a[@id='ctl00_ctl00_ctl00_mainContent_localizedContent_bodyCenter_BasicSearchPanel_btnAdvancedSearch']/@href")
-    href = strip_js(href[0])
-    formdata = {"__EVENTTARGET": href}
-    response = form_submit(session, response,
-                           "aspnetForm",
-                           formdata,
-                           {"Referer": response.url}
-                           )
-
-    root = html.fromstring(response.text)
-    categories = root.xpath(".//select[@name='ctl00$ctl00$ctl00$mainContent$localizedContent$bodyCenter$adsPanel$lbProductCategory']/option")
-    category = categories[iCategory]
-    rsrc = category.xpath("./@value")[0]
-    text = category.xpath(".//text()")[0]
-    formdata= {"__EVENTTARGET": "ctl00$ctl00$ctl00$mainContent$localizedContent$bodyCenter$adsPanel$lbProductCategory",
-               "ctl00$ctl00$ctl00$mainContent$localizedContent$bodyCenter$adsPanel$lbProductCategory": rsrc,
-               "__ASYNCPOST:": "true"}
-    response = form_submit(session, response,
-                           "aspnetForm",
-                           formdata,
-                           {"Referer": response.url}
-                           )
-
-    root = html.fromstring(response.text)
-    families = root.xpath("//select[@name='ctl00$ctl00$ctl00$mainContent$localizedContent$bodyCenter$adsPanel$lbProductFamily']/option")
-    family = families[iFamily]
-    rsrc = family.xpath("./@value")[0]
-    text = family.xpath(".//text()")[0]
-    formdata={"__EVENTTARGET": "ctl00$ctl00$ctl00$mainContent$localizedContent$bodyCenter$adsPanel$lbProductFamily",
-              "ctl00$ctl00$ctl00$mainContent$localizedContent$bodyCenter$adsPanel$lbProductFamily": rsrc,
-              "__ASYNCPOST:": "true"}
-    response = form_submit(session, response,
-                           "aspnetForm",
-                           formdata,
-                           {"Referer": response.url}
-                           )
-    root = html.fromstring(response.text)
-    products = root.xpath("//select[@name='ctl00$ctl00$ctl00$mainContent$localizedContent$bodyCenter$adsPanel$lbProduct']/option")
-    product = products[iProduct]
-    rsrc = product.xpath("./@value")[0]
-    text = product.xpath(".//text()")[0]
-    formdata={"__EVENTTARGET": "ctl00$ctl00$ctl00$mainContent$localizedContent$bodyCenter$adsPanel$lbProduct",
-              "ctl00$ctl00$ctl00$mainContent$localizedContent$bodyCenter$adsPanel$lbProduct": rsrc,
-              "__ASYNCPOST:": "true"}
-    response = form_submit(session, response,
-                           "aspnetForm",
-                           formdata,
-                           {"Referer": response.url}
-                           )
-
-    root = html.fromstring(response.text)
-    firmwares = root.xpath("//div[@id='LargeFirmware']//a")
-    firmware = firmwares[iFirmware]
-    href = firmware.xpath("./@data-durl")
-    text = firmware.xpath(".//text()")
-    if not href:
-        href = firmware.xpath("./@href")
-    if "firmware" in " ".join(text).lower():
-        description = text[0]
-        url = href[0]
-        model = product.xpath(".//text()")[0]
-        print(model, url, description)
-
-
-
-
-if __name__=='__main__':
-    main()
-
 
