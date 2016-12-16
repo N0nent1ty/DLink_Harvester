@@ -9,7 +9,7 @@ from lxml import html
 from form_submit import form_submit
 from web_utils import getFileSha1, getFileMd5
 from urllib.parse import urlsplit
-
+from contextlib import closing
 
 executor = None
 dlDir = './output/netgear/downloadcenter.netgear.com_form_submit/'
@@ -151,42 +151,46 @@ def walkFirmwares(response, product):
 
 def download_file(model, desc, fw_url):
     try:
-        resp = requests.get(url=fw_url, stream=True)
-        if 'Content-Length' in resp.headers:
-            fileSize = int(resp.headers['Content-Length'])
-            print('fileSize=', fileSize)
-        else:
-            fileSize=None
-        try:
-            fw_ver = re.search(r'\d+(\.\d+)+', desc).group(0)
-        except AttributeError:
-            fw_ver = ''
-        fileName = os.path.basename(urlsplit(fw_url).path)
-        print('fileName=', fileName)
-        if 'Last-Modified' in resp.headers:
-            fw_date= resp.headers['Last-Modified']
-            fw_date = parse_date(fw_date)
-        else:
-            fw_date = None
-        if os.path.isfile(dlDir+fileName) \
-                and fileSize==os.path.getsize(dlDir+fileName):
-            print('already downloaded: ', fileName)
-        else:
-            print('start downloading: ', fw_url)
-            with open(dlDir+fileName+'.downloading', 'wb') as fout:
-                for chunk in resp.iter_content(8192):
-                    fout.write(chunk)
-            os.rename(dlDir+fileName+'.downloading', dlDir+fileName)
-            print('finished downloading: ', fw_url)
-        sha1 = getFileSha1(dlDir+fileName)
-        md5 = getFileMd5(dlDir+fileName)
-        fileSize = os.path.getsize(dlDir+fileName)
-        with open('netgear_filelist.csv', 'a') as fout:
-            cw = csv.writer(fout)
-            cw.writerow([model, fw_ver, fileName, fw_url, fw_date, fileSize, sha1, md5])
+        with closing(requests.get(url=fw_url, stream=True)) as resp:
+            if 'Content-Length' in resp.headers:
+                fileSize = int(resp.headers['Content-Length'])
+                print('fileSize=', fileSize)
+            else:
+                fileSize=None
+            try:
+                fw_ver = re.search(r'\d+(\.\d+)+', desc).group(0)
+            except AttributeError:
+                fw_ver = ''
+            fileName = os.path.basename(urlsplit(fw_url).path)
+            print('fileName=', fileName)
+            if 'Last-Modified' in resp.headers:
+                fw_date= resp.headers['Last-Modified']
+                fw_date = parse_date(fw_date)
+            else:
+                fw_date = None
+            if os.path.isfile(dlDir+fileName) \
+                    and fileSize==os.path.getsize(dlDir+fileName):
+                print('already downloaded: ', fileName)
+            else:
+                print('start downloading: ', fw_url)
+                with open(dlDir+fileName+'.downloading', 'wb') as fout:
+                    for chunk in resp.iter_content(chunk_size=8192):
+                        if chunk:  # filter out keep-alive new chunks
+                            fout.write(chunk)
+                os.rename(dlDir+fileName+'.downloading', dlDir+fileName)
+                print('finished downloading: ', fw_url)
+            sha1 = getFileSha1(dlDir+fileName)
+            md5 = getFileMd5(dlDir+fileName)
+            if fileSize and os.path.getsize(dlDir+fileName)!=fileSize:
+                print('Content-Length(%s) different to real fileSize %s' % (fileSize, os.path.getsize(dlDir+fileName)))
+            fileSize = os.path.getsize(dlDir+fileName)
+            with open('netgear_filelist.csv', 'a') as fout:
+                cw = csv.writer(fout)
+                cw.writerow([model, fw_ver, fileName, fw_url, fw_date, fileSize, sha1, md5])
     except BaseException as ex:
         traceback.print_exc()
 
 
 if __name__=='__main__':
     main()
+
