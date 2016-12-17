@@ -11,6 +11,7 @@ from web_utils import getFileSha1, getFileMd5
 from urllib.parse import urlsplit
 from contextlib import closing
 
+visited = {}
 executor = None
 dlDir = './output/netgear/downloadcenter.netgear.com_form_submit/'
 startCat=0
@@ -143,7 +144,10 @@ def walkFirmwares(response, product):
                 url = href[0]
                 model = product.xpath(".//text()")[0]
                 print('model="%s", desc="%s", url=%s'%(model, desc, url))
-                global executor
+                global executor, visited
+                if url in visited:
+                    continue
+                visited[url] = (model,desc)
                 executor.submit(download_file, model, desc, url)
     except BaseException as ex:
         traceback.print_exc()
@@ -151,7 +155,7 @@ def walkFirmwares(response, product):
 
 def download_file(model, desc, fw_url):
     try:
-        with closing(requests.get(url=fw_url, stream=True)) as resp:
+        with closing(requests.get(url=fw_url, timeout=10, stream=True)) as resp:
             if 'Content-Length' in resp.headers:
                 fileSize = int(resp.headers['Content-Length'])
                 print('fileSize=', fileSize)
@@ -163,6 +167,9 @@ def download_file(model, desc, fw_url):
                 fw_ver = ''
             fileName = os.path.basename(urlsplit(fw_url).path)
             print('fileName=', fileName)
+            if not fileName:
+                print('No fileName:, url=', fw_url)
+                return
             if 'Last-Modified' in resp.headers:
                 fw_date= resp.headers['Last-Modified']
                 fw_date = parse_date(fw_date)
@@ -177,7 +184,10 @@ def download_file(model, desc, fw_url):
                     for chunk in resp.iter_content(chunk_size=8192):
                         if chunk:  # filter out keep-alive new chunks
                             fout.write(chunk)
-                os.rename(dlDir+fileName+'.downloading', dlDir+fileName)
+                try:
+                    os.rename(dlDir+fileName+'.downloading', dlDir+fileName)
+                except FileNotFoundError:
+                    print('"%s" not found'%(dlDir+fileName+'.downloading'))
                 print('finished downloading: ', fw_url)
             sha1 = getFileSha1(dlDir+fileName)
             md5 = getFileMd5(dlDir+fileName)
@@ -189,6 +199,8 @@ def download_file(model, desc, fw_url):
                 cw.writerow([model, fw_ver, fileName, fw_url, fw_date, fileSize, sha1, md5])
     except BaseException as ex:
         traceback.print_exc()
+        import pdb
+        pdb.set_trace()
 
 
 if __name__=='__main__':
