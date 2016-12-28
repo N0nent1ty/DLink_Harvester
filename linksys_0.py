@@ -14,6 +14,7 @@ from dateutil.parser import parse as parse_date
 from web_utils import getFileSha1, getFileMd5
 
 
+visited = {}
 executor = None
 dlDir = './output/linksys/0/'
 
@@ -112,7 +113,10 @@ def selectFile(session, fileUrl): # noqa
                     if 'fver' not in locals().keys():
                         fver = '1.0'
                     print('hw_rev, model, fver, fdate, furl ', hw_rev, model, fver, fdate, furl)
-                    global executor
+                    global executor, visited
+                    if furl in visited:
+                        continue
+                    visited[furl] = (model,fver,fdate)
                     executor.submit(download_file, hw_rev, model, fver, fdate, furl)
 
 
