@@ -40,6 +40,7 @@ def main():
     except BaseException as ex:
         traceback.print_exc()
     finally:
+        print('Wait for exeuctor shuddown')
         executor.shutdown(True)
 
 
@@ -58,11 +59,12 @@ def walkFiles(session, url):
         fname = fwfile.text_content()
         furl = urljoin(resp.url, fwfile.attrib['href'])
         model = root.xpath(".//*[@class='sizelefttitle']/text()")[0]
+        global executor, visited
         if furl in visited:
             continue
         else:
             visited[furl] = (model,fname,furl)
-        download_file(model, fname, furl)
+        executor.submit(download_file, model, fname, furl)
 
 
 def download_file(model, fdesc, furl):  # noqa
@@ -74,7 +76,7 @@ def download_file(model, fdesc, furl):  # noqa
                 fsize = None
             if not fsize:
                 print('Unknown size resp.url=%s, headers=%s' %
-                      (resp.url, resp.headers) )
+                      (resp.url, resp.headers))
                 with open('netgear_cn_filelist.csv', 'a') as fout:
                     cw = csv.writer(fout)
                     cw.writerow([model, "", "", furl, None, fsize, "unknown", "unknown"])
@@ -96,10 +98,9 @@ def download_file(model, fdesc, furl):  # noqa
                 with open(dlDir+fname, 'wb') as fout:
                     fout.write(b'place_holder0')
                 with open(dlDir+fname+'.downloading', 'wb') as fout:
-                    fout.write(b' '*fsize)
-                    # for chunk in resp.iter_content(chunk_size=8192):
-                    #    if chunk:  # filter out keep-alive new chunks
-                    #        fout.write(chunk)
+                    for chunk in resp.iter_content(chunk_size=8192):
+                        if chunk:  # filter out keep-alive new chunks
+                            fout.write(chunk)
                 try:
                     os.replace(dlDir+fname+'.downloading', dlDir+fname)
                 except BaseException as ex:
