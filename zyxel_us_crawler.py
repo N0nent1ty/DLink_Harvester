@@ -1,33 +1,28 @@
 #!/usr/bin/env python3  # noqa
 # -*- coding: utf8 -*-
-import os
-import csv
-import re
-import sys
+import os, csv, re, sys # noqa
 import traceback
-from urllib.parse import urljoin
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import closing
 from dateutil.parser import parse as parse_date
 from datetime import datetime
+from contextlib import closing
 import requests
 import ftputil
 from lxml import html
-from form_submit import form_submit
 from web_utils import getFileSha1, getFileMd5
 
 
 visited = {}
 executor = None
-dlDir = './output/Zyxel/www.zyxel.com/'
+dlDir = 'output/Zyxel/www.zyxel.com/'
 
 
 def main():
     global executor
     try:
         session = requests.Session()
-        executor = ThreadPoolExecutor(1)
+        executor = ThreadPoolExecutor()
         os.makedirs(dlDir, exist_ok=True)
         url = 'http://www.zyxel.com/us/en/support/download_landing.shtml'
         with open('zyxel_us_linksys.csv', 'w') as fout:
@@ -56,53 +51,66 @@ def walkFiles(model, session, resp): #noqa
             tdclass = td.attrib['class'].split()[0]
             if tdclass == 'typeTd':
                 firmware = (td.text_content().strip() == 'Firmware')
+                if firmware:
+                    print('Download "%s" firmware' % model)
             if 'firmware' not in locals() or not firmware:
                 continue
             if tdclass == 'versionTd':
                 fver = td.text_content().strip()
-            elif tdclass == 'noteTd':
-                try:
-                    anc = td.cssselect('.linkedItem.v1 a')[0]
-                    md5 = anc.attrib['data-md5']
-                    sha1 = anc.attrib['data-sha1']
-                except (IndexError, KeyError):
-                    pass
             elif tdclass == 'dateTd':
                 fdate = td.text_content().strip()
                 fdate = re.search(r'\d+-\d+-\d+', fdate).group(0)
                 fdate = datetime.strptime(fdate, "%m-%d-%Y")
             elif tdclass == 'downloadTd':
                 furl = td.cssselect('a')[0].attrib.get('data-filelink', '')
+                if furl:
+                    print('furl=%s' % furl)
+                else:
+                    print('furl is empty!!!')
                 global visited, executor
-                if furl not in visited:
-                    if 'sha1' not in locals().keys():
-                        sha1, md5 = None, None
-                    visited[furl] = (model, fver, sha1, md5, fdate)
-                    executor.submit(download_file, model, fver, sha1, md5, fdate, furl)
+                if furl and furl not in visited:
+                    visited[furl] = (model, fver, fdate)
+                    # executor.submit(download_file, model, fver, fdate, furl)
+                    download_file(model, fver, fdate, furl)
 
 
-def download_file(model, fver, sha1, md5, fdate, furl):
+def download_file(model, fver, fdate, furl):
+    if urlsplit(furl).scheme == 'ftp':
+        download_ftp_file(model, fver, fdate, furl)
+    elif urlsplit(furl).scheme.startswith('http'):
+        download_http_file(model, fver, fdate, furl)
+
+
+def download_ftp_file(model, fver, fdate, furl):
     try:
         host = ftputil.FTPHost(urlsplit(furl).hostname, "anonymous",
                                "guest@guest.com")
+    except ftputil.error.FTPOSError as ex:
+        print('ex=%s, furl=%s' % (ex, furl))
+        return
+    try:
+        host.keep_alive()
         if not fdate:
             fdate = host.path.getmtime(urlsplit(furl).path)
         fsize = host.path.getsize(urlsplit(furl).path)
-        needDownload, fname = determine_filename(host, furl)
+        needDownload, fname = determine_ftp_filename(host, furl)
         if needDownload:
             fsize = host.path.getsize(urlsplit(furl).path)
-            print("Start download %s -> %s %d bytes" % (furl, fname, fsize))
-            # host.download(urlsplit(furl).path, dlDir + fname)
-            with open(dlDir+fname, 'wb') as fout:
-                fout.write(b' '*fsize)
-            print("Finished download %s -> %s %d bytes" % (furl, fname, fsize))
+            print("Start download %s -> \"%s\" %d bytes" % (furl, fname, fsize))
+            host.download(urlsplit(furl).path, dlDir + fname)
+            print("Finished download \"%s\" -> %s %d bytes" % (furl, fname, fsize))
+        else:
+            print('Already downloaded %s' % (furl))
         md5 = getFileMd5(dlDir+fname)
         sha1 = getFileSha1(dlDir+fname)
         fsize = os.path.getsize(dlDir+fname)
         with open('zyxel_us_linksys.csv', 'a') as fout:
             cw = csv.writer(fout)
             cw.writerow([model, fver, fname, furl, fdate, fsize, sha1, md5])
+    except TimeoutError as ex:
+        print('Tomeout Error ex=%s, furl=%s' % (ex, furl))
     except BaseException as ex:
+        print('ex=%s, furl=%s' % (ex, furl))
         traceback.print_exc()
     finally:
         host.close()
@@ -124,7 +132,7 @@ def get_all_models(root):
     return models
 
 
-def determine_filename(host, furl) -> (bool, str):
+def determine_ftp_filename(host, furl) -> (bool, str):
     try:
         fsize = host.path.getsize(urlsplit(furl).path)
         fname = os.path.basename(urlsplit(furl).path)
@@ -143,6 +151,53 @@ def determine_filename(host, furl) -> (bool, str):
             else:
                 fname = ftitle + '_1' + fext
     except BaseException as ex:
+        traceback.print_exc()
+
+
+def download_http_file(model, fver, fdate, furl): # noqa
+    try:
+        with closing(requests.get(url=furl, timeout=30, stream=True)) as resp:
+            if 'Content-Length' in resp.headers:
+                fsize = int(resp.headers['Content-Length'])
+            else:
+                fsize = None
+            if not fdate:
+                if 'Last-Modified' in resp.headers:
+                    fdate = resp.headers['Last-Modified']
+                    fdate = parse_date(fdate)
+            fname = os.path.basename(urlsplit(furl).path)
+            alreadyDownloaded = False
+            if os.path.exists(dlDir+fname) and os.path.getsize(dlDir+fname) == fsize:
+                alreadyDownloaded = True
+            elif os.path.exists(dlDir+fname) and os.path.getsize(dlDir+fname) != fsize:
+                # rename until not os.path.exist(fname)
+                while os.path.exists(dlDir+fname):
+                    ftitle, fext = os.path.splitext(fname)
+                    m = re.search('(.+)_(\d+)', ftitle)
+                    if m:
+                        ftitle = m.group(1) + '_' + str(int(m.group(2))+1)
+                        fname = ftitle+fext
+                    else:
+                        fname = ftitle+"_1" + fext
+            if not alreadyDownloaded:
+                print('Start downloading %s -> "%s" %d bytes' % (furl, fname, fsize))
+                with open(dlDir+fname, 'wb') as fout:
+                    for chunk in resp.iter_content(chunk_size=8192):
+                        if chunk:  # filter out keep-alive new chunks
+                            fout.write(chunk)
+                print('Finished downloading %s -> "%s" %d bytes' % (furl, fname, fsize))
+            else:
+                print('Already downloaded %s' % furl)
+            md5 = getFileMd5(dlDir+fname)
+            sha1 = getFileSha1(dlDir+fname)
+            fsize = os.path.getsize(dlDir+fname)
+            with open('zyxel_us_linksys.csv', 'a') as fout:
+                cw = csv.writer(fout)
+                cw.writerow([model, fver, fname, furl, fdate, fsize, sha1, md5])
+    except TimeoutError as ex:
+        print('TomeoutError ex=%s, furl=%s' % (ex, furl))
+    except BaseException as ex:
+        print('ex=%s, furl=%s' % (ex, furl))
         traceback.print_exc()
 
 
