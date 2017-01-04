@@ -25,7 +25,7 @@ def main():
         executor = ThreadPoolExecutor()
         os.makedirs(dlDir, exist_ok=True)
         url = 'http://www.zyxel.com/us/en/support/download_landing.shtml'
-        with open('zyxel_us_linksys.csv', 'w') as fout:
+        with open('zyxel_us_filelist.csv', 'w') as fout:
             cw = csv.writer(fout)
             cw.writerow(['model', 'fver', 'fname', 'furl', 'fdate', 'fsize', 'sha1', 'md5'])
         resp = session.get(url=url)
@@ -104,7 +104,7 @@ def download_ftp_file(model, fver, fdate, furl):
         md5 = getFileMd5(dlDir+fname)
         sha1 = getFileSha1(dlDir+fname)
         fsize = os.path.getsize(dlDir+fname)
-        with open('zyxel_us_linksys.csv', 'a') as fout:
+        with open('zyxel_us_filelist.csv', 'a') as fout:
             cw = csv.writer(fout)
             cw.writerow([model, fver, fname, furl, fdate, fsize, sha1, md5])
     except TimeoutError as ex:
