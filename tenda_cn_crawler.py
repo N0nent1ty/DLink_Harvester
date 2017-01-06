@@ -16,7 +16,7 @@ from pyquery import PyQuery as pq
 
 visited = {}
 executor = None
-dlDir = 'output/Tenda/www.tendacn.com'
+dlDir = 'output/Tenda/www.tendacn.com/'
 
 
 def main():
@@ -28,19 +28,30 @@ def main():
         with open('tenda_filelist.csv', 'w') as fout:
             cw = csv.writer(fout)
             cw.writerow(['model', 'fver', 'fname', 'furl', 'fdate', 'fsize', 'sha1', 'md5'])
-        url = 'http://www.tendacn.com/en/service/download-cata-11.html'
-        d = pq(url=url)
-        anchors = d('.SearchFaqList.clearfix>dd>a')
-        for anchor in anchors:
-            text = unicodedata.normalize('NFKC', anchor.text_content())
-            model = text.split()[0]
-            fver = re.search(r'V\d+(\.\d+)+', text, re.I).group(0)
-            download_file(model, fver, text, anchor.attrib['href'])
+        walkFiles('http://www.tendacn.com/en/service/download-cata-11.html')
+        walkFiles('http://tendacn.com/en/service/download-cata-11-2.html')
+        walkFiles('http://www.tendacn.com/en/service/download-cata-11-3.html')
     except BaseException as ex:
         traceback.print_exc()
     finally:
         print('Wait for exeuctor shuddown')
         executor.shutdown(True)
+
+
+def walkFiles(url):
+    try:
+        d = pq(url=url)
+        anchors = d('.SearchFaqList.clearfix>dd>a')
+        for anchor in anchors:
+            text = unicodedata.normalize('NFKC', anchor.text_content())
+            if 'Firmware' not in text:
+                continue
+            model = text.split()[0]
+            fver = text.split()[2].split('()')[0]
+            global executor
+            executor.submit(download_file, model, fver, text, anchor.attrib['href'])
+    except BaseException as ex:
+        traceback.print_exc()
 
 
 def download_file(model, fver, text, furl): #noqa
@@ -53,6 +64,8 @@ def download_file(model, fver, text, furl): #noqa
             if 'Last-Modified' in resp.headers:
                 fdate = resp.headers['Last-Modified']
                 fdate = parse_date(fdate)
+            else:
+                fdate = None
             fname = os.path.basename(urlsplit(furl).path)
             alreadyDownloaded = False
             if os.path.exists(dlDir+fname) and os.path.getsize(dlDir+fname) == fsize:
