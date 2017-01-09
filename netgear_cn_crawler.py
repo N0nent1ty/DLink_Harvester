@@ -11,7 +11,6 @@ from contextlib import closing
 from dateutil.parser import parse as parse_date
 import requests
 from lxml import html
-from form_submit import form_submit
 from web_utils import getFileSha1, getFileMd5
 
 visited = {}
@@ -34,7 +33,7 @@ def main():
         startProd = 1
         prods = root.xpath(".//select[@name='select']/option")
         for iProd, prod in enumerate(prods[startProd:], startProd):
-            prodText = prod.xpath("./text()")[0].strip()
+            # prodText = prod.xpath("./text()")[0].strip()
             prodUrl = prod.xpath("./@value")[0].strip()
             walkProd(session, urljoin(resp.url, prodUrl))
     except BaseException as ex:
@@ -69,7 +68,7 @@ def walkFiles(session, url):
 
 def download_file(model, fdesc, furl):  # noqa
     try:
-        with closing(requests.get(url=furl, timeout=10, stream=True)) as resp:
+        with closing(requests.get(url=furl, timeout=30, stream=True)) as resp:
             if 'Content-Length' in resp.headers:
                 fsize = int(resp.headers['Content-Length'])
             else:
@@ -117,10 +116,12 @@ def download_file(model, fdesc, furl):  # noqa
                 cw.writerow([model, fver, fname, furl, fdate, fsize, sha1, md5])
     except requests.exceptions.ConnectionError:
         print('ConnectionError: %s' % furl)
+    except requests.exceptions.ReadTimeout:
+        print('ReadTimeout: %s' % furl)
     except BaseException as ex:
         traceback.print_exc()
-        import pdb
-        pdb.set_trace()
+        # import pdb
+        # pdb.set_trace()
 
 
 def determine_filename(resp) -> (bool, str):
@@ -138,11 +139,10 @@ def determine_filename(resp) -> (bool, str):
             fname = hashlib.md5(resp.url.encode()).hexdigest()
             print('Generate fname "%s" from resp.url="%s"' % (fname, resp.url))
         while True:
-            if os.path.isfile(dlDir + fname) and \
-                    fsize == os.path.getsize(dlDir + fname):
-                return False, fname
-            else:
+            if not os.path.exists(dlDir+fname):
                 return True, fname
+            elif fsize == os.path.getsize(dlDir+fname):
+                return False, fname
             ftitle, fext = os.path.splitext(fname)
             m = re.search(r'(.+)_(\d+)', ftitle)
             if m:
