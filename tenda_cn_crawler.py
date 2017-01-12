@@ -105,4 +105,3 @@ def download_file(model, fver, text, furl): #noqa
 
 if __name__ == '__main__':
     main()
-
