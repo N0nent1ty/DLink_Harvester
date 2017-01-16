@@ -18,6 +18,56 @@ import html2text
 visited = {}
 executor = None
 dlDir = 'output/Tenda/www.tendaus.com/'
+driver = None
+
+
+def walkSelects():
+    from selenium import webdriver
+    from selenium.webdriver.support.ui import Select
+    global driver
+    driver = webdriver.PhantomJS()
+    driver.get('http://www.tendaus.com/Default.aspx?Module=WebsiteEN&Action=DownloadCenter')
+    selects = driver.find_elements_by_css_selector('.select01')
+    selectPre = Select(selects[0])
+    selectCity = Select(selects[1])
+    selectCatId = Select(selects[2])
+    for iPre in range(len(selectPre.options)):
+        selectPre.select_by_index(iPre)
+        print('selectPre=%d "%s"' % (iPre, selectPre.first_selected_option.text))
+        for iCity in range(len(selectCity.options)):
+            selectCity.select_by_index(iCity)
+            print('selectCity="%d %s"' % (iCity, selectCity.first_selected_option.text))
+            for iCatId in range(len(selectCatId.options)):
+                selectCatId.select_by_index(iCatId)
+                print('selectCatId = "%s"' % selectCatId.first_selected_option.text)
+                oldText = getText("#proSearch>li>a")
+                driver.find_element_by_css_selector(".searchbutton3.fl").click()
+                waitTextChanged("#proSearch>li>a", oldText, 1.0, 0.5)
+                for model in driver.find_elements_by_css_selector("#proSearch>li>a"):
+                    print('model="%s"' % (model.text))
+                    href = model.get_attribute("href")
+                    walkTables(requests.Session(), href)
+
+
+def getText(css)->str:
+    global driver
+    try:
+        return driver.find_elements_by_css_selector(css)[0].text
+    except IndexError:
+        return None
+
+
+def waitTextChanged(css:str, oldText:str, timeOut:float=3.0, pollFreq:float=1.0)->str:
+    import time
+    begin = time.time()
+    while (time.time() - begin) < timeOut:
+        newText = getText(css)
+        if newText != oldText:
+            return newText
+        time.sleep(pollFreq)
+    newText = getText(css)
+    print('timeOut=%s, newText="%s"' % (timeOut, newText))
+    return newText
 
 
 def main():
@@ -29,10 +79,10 @@ def main():
         with open('tenda_us_filelist.csv', 'w') as fout:
             cw = csv.writer(fout)
             cw.writerow(['model', 'fver', 'fname', 'furl', 'fdate', 'fsize', 'sha1', 'md5'])
-        walkModels(sess, 'http://www.tendaus.com/Default.aspx?Module=WebsiteEN&Action=DownloadCenter')
-        walkTables(sess, "http://www.tendaus.com/Default.aspx?Module=WebsiteEN&Action=DownloadCenter&Id=57")
-        walkTables(sess, "http://www.tendaus.com/Default.aspx?Module=WebsiteEN&Action=DownloadCenter&Id=59")
-        walkTables(sess, "http://www.tendaus.com/Default.aspx?Module=WebsiteEN&Action=DownloadCenter&Id=39")
+        walkSelects()
+        # walkModels(sess, 'http://www.tendaus.com/Default.aspx?Module=WebsiteEN&Action=DownloadCenter')
+        # for Id in range(1, 200):
+        #     walkTables(sess, "http://www.tendaus.com/Default.aspx?Module=WebsiteEN&Action=DownloadCenter&Id=%(Id)s"%locals())
     except BaseException as ex:
         traceback.print_exc()
     finally:
@@ -53,6 +103,9 @@ def walkModels(sess, url):
 
 def walkTables(sess, url):
     resp = sess.get(url=url)
+    if not resp:
+        print("Failed url=",url)
+        return
     print('walkTables url=', url)
     root = html.fromstring(resp.text)
     tables = root.xpath(".//table[@bgcolor='#ddd']")
