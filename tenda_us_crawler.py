@@ -1,18 +1,15 @@
 #!/usr/bin/env python3  # noqa
 # -*- coding: utf8 -*-
-import os, csv, re, sys # noqa
+import os
+import csv
+import re
 import traceback
-from urllib.parse import urljoin, urlsplit
+from urllib.parse import urljoin
 from concurrent.futures import ThreadPoolExecutor
 from dateutil.parser import parse as parse_date
 from datetime import datetime
-from contextlib import closing
 import requests
-import ftputil
 from lxml import html
-from web_utils import getFileSha1, getFileMd5
-from pyquery import PyQuery as pq
-import html2text
 
 
 visited = {}
@@ -132,6 +129,8 @@ def walkTables(sess, url):
 
 
 def download_file(model, fname, furl, fver, fdate): #noqa
+    from web_utils import getFileSha1, getFileMd5
+    from contextlib import closing
     try:
         with closing(requests.get(url=furl, timeout=30, stream=True)) as resp:
             if 'Content-Length' in resp.headers:
