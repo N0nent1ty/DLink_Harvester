@@ -38,6 +38,15 @@ def download(model, rev, fw_ver, fw_url, rel_date):
                 return
             print('start download :', fw_url)
             cont = fin.read()
+
+            if not os.path.exists(os.path.dirname(localstor)):
+                print("The path dosen't exist, creating one")
+                try:
+                    os.makedirs(os.path.dirname(localstor))
+                except OSError as exc: # Guard against race condition
+                    if exc.errno != errno.EEXIST:
+                        raise
+
             with open(localstor+fname, 'wb') as fout:
                 fout.write(cont)
             print('finished download :', fw_url)
